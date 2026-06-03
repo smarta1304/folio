@@ -40,18 +40,21 @@ class FolioApp extends StatelessWidget {
         child: MaterialApp(
           title: 'Folio',
           debugShowCheckedModeBanner: false,
+          themeMode: ThemeMode.light, // Force light mode to show the violet theme
           theme: ThemeData(
             useMaterial3: true,
             colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFF673AB7),
-              primary: const Color(0xFF673AB7),
-              secondary: const Color(0xFFFF5722),
-              surface: Colors.white,
+              seedColor: const Color(0xFF9C27B0), // Vibrant Violet
+              primary: const Color(0xFF9C27B0),
+              onPrimary: Colors.white,
+              secondary: const Color(0xFFE1BEE7), // Light Violet
+              surface: const Color(0xFFFDFBFF), // Very subtle violet-tinted white
               brightness: Brightness.light,
             ),
             textTheme: GoogleFonts.poppinsTextTheme(),
             appBarTheme: const AppBarTheme(
-              backgroundColor: Colors.white,
+              backgroundColor: Color(0xFFFDFBFF),
+              foregroundColor: Color(0xFF211924),
               elevation: 0,
               centerTitle: true,
             ),
@@ -59,7 +62,9 @@ class FolioApp extends StatelessWidget {
           darkTheme: ThemeData(
             useMaterial3: true,
             colorScheme: ColorScheme.fromSeed(
-              seedColor: Colors.deepPurple,
+              seedColor: const Color(0xFF2D5AF0),
+              primary: const Color(0xFF3B82F6),
+              secondary: const Color(0xFF2DD4BF),
               brightness: Brightness.dark,
             ),
             textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme),

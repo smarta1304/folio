@@ -125,11 +125,15 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
         final docId = await repository.createDocument(event.folderId, event.name);
 
         for (int i = 0; i < currentState.images.length; i++) {
-          final permanentFile = await scannerService.saveImageToPermanentStorage(currentState.images[i]);
+          final imageFile = currentState.images[i];
+          final extractedText = await scannerService.extractText(imageFile);
+          final permanentFile = await scannerService.saveImageToPermanentStorage(imageFile);
+          
           await repository.addPage(PageModel(
             documentId: docId,
             imagePath: permanentFile.path,
             pageOrder: i,
+            extractedText: extractedText,
           ));
         }
 

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -26,7 +27,11 @@ class ScannerService {
       await folioDir.create(recursive: true);
     }
 
-    final String fileName = 'IMG_${DateTime.now().millisecondsSinceEpoch}${p.extension(image.path)}';
+    final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+    final String randomSuffix = Random().nextInt(1000).toString().padLeft(3, '0');
+    final String extension = p.extension(image.path).isEmpty ? '.jpg' : p.extension(image.path);
+    final String fileName = 'IMG_${timestamp}_$randomSuffix$extension';
+
     final File permanentImage = await image.copy(p.join(folioDir.path, fileName));
     return permanentImage;
   }
@@ -48,6 +53,12 @@ class ScannerService {
     if (text.contains('id card')) return 'ID_Card';
 
     return 'New_Document';
+  }
+
+  Future<String> extractText(File image) async {
+    final inputImage = InputImage.fromFile(image);
+    final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
+    return recognizedText.text;
   }
 
   void dispose() {

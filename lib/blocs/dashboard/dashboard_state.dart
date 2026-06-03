@@ -6,7 +6,7 @@ abstract class DashboardState extends Equatable {
   const DashboardState();
 
   @override
-  List<Object> get props => [];
+  List<Object?> get props => [];
 }
 
 class DashboardInitial extends DashboardState {}
@@ -16,14 +16,18 @@ class DashboardLoading extends DashboardState {}
 class DashboardLoaded extends DashboardState {
   final List<Folder> folders;
   final List<Document> recentDocuments;
+  final List<Document>? searchResults;
+  final String? searchQuery;
 
   const DashboardLoaded({
     required this.folders,
     required this.recentDocuments,
+    this.searchResults,
+    this.searchQuery,
   });
 
   @override
-  List<Object> get props => [folders, recentDocuments];
+  List<Object?> get props => [folders, recentDocuments, searchResults, searchQuery];
 }
 
 class DashboardError extends DashboardState {

@@ -217,18 +217,6 @@ class _PageGrid extends StatelessWidget {
                 child: Image.file(images[index], fit: BoxFit.cover, width: double.infinity, height: double.infinity),
               ),
               Positioned(
-                top: 8,
-                right: 8,
-                child: GestureDetector(
-                  onTap: () => context.read<ScannerBloc>().add(RemoveImage(index)),
-                  child: CircleAvatar(
-                    radius: 14,
-                    backgroundColor: Colors.black.withValues(alpha: 0.5),
-                    child: const Icon(Icons.close, size: 18, color: Colors.white),
-                  ),
-                ),
-              ),
-              Positioned(
                 bottom: 8,
                 left: 8,
                 child: Container(
@@ -239,6 +227,26 @@ class _PageGrid extends StatelessWidget {
               ),
             ],
           ),
+          onLongPress: () async {
+            final confirm = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('Remove Page'),
+                content: const Text('Remove this page from the scan?'),
+                actions: [
+                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    style: TextButton.styleFrom(foregroundColor: Colors.red),
+                    child: const Text('Remove'),
+                  ),
+                ],
+              ),
+            );
+            if (confirm == true) {
+              context.read<ScannerBloc>().add(RemoveImage(index));
+            }
+          },
         );
       },
     );
@@ -274,6 +282,35 @@ class _ReorderablePageList extends StatelessWidget {
               ],
             ),
             child: ListTile(
+              onTap: () async {
+                final editedImage = await Navigator.push<File>(
+                  context,
+                  MaterialPageRoute(builder: (context) => StudioScreen(image: images[index])),
+                );
+                if (editedImage != null && context.mounted) {
+                  context.read<ScannerBloc>().add(UpdateImage(index, editedImage));
+                }
+              },
+              onLongPress: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Remove Page'),
+                    content: const Text('Remove this page from the scan?'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        style: TextButton.styleFrom(foregroundColor: Colors.red),
+                        child: const Text('Remove'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirm == true) {
+                  context.read<ScannerBloc>().add(RemoveImage(index));
+                }
+              },
               leading: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: Image.file(images[index], width: 50, height: 50, fit: BoxFit.cover),

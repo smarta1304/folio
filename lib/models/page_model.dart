@@ -5,6 +5,7 @@ class PageModel extends Equatable {
   final int documentId;
   final String imagePath;
   final int pageOrder;
+  final String? extractedText;
   final String? metadata;
 
   const PageModel({
@@ -12,6 +13,7 @@ class PageModel extends Equatable {
     required this.documentId,
     required this.imagePath,
     required this.pageOrder,
+    this.extractedText,
     this.metadata,
   });
 
@@ -20,6 +22,7 @@ class PageModel extends Equatable {
     int? documentId,
     String? imagePath,
     int? pageOrder,
+    String? extractedText,
     String? metadata,
   }) {
     return PageModel(
@@ -27,6 +30,7 @@ class PageModel extends Equatable {
       documentId: documentId ?? this.documentId,
       imagePath: imagePath ?? this.imagePath,
       pageOrder: pageOrder ?? this.pageOrder,
+      extractedText: extractedText ?? this.extractedText,
       metadata: metadata ?? this.metadata,
     );
   }
@@ -37,6 +41,7 @@ class PageModel extends Equatable {
       'documentId': documentId,
       'imagePath': imagePath,
       'pageOrder': pageOrder,
+      'extractedText': extractedText,
       'metadata': metadata,
     };
   }
@@ -47,10 +52,11 @@ class PageModel extends Equatable {
       documentId: map['documentId'] as int,
       imagePath: map['imagePath'] as String,
       pageOrder: map['pageOrder'] as int,
+      extractedText: map['extractedText'] as String?,
       metadata: map['metadata'] as String?,
     );
   }
 
   @override
-  List<Object?> get props => [id, documentId, imagePath, pageOrder, metadata];
+  List<Object?> get props => [id, documentId, imagePath, pageOrder, extractedText, metadata];
 }

@@ -19,6 +19,23 @@ class DocumentListTile extends StatelessWidget {
     return Dismissible(
       key: Key('doc_${doc.id}'),
       direction: DismissDirection.endToStart,
+      confirmDismiss: (direction) async {
+        return await showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Delete Document'),
+            content: Text('Are you sure you want to delete "${doc.name}"?'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+        );
+      },
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
@@ -31,7 +48,7 @@ class DocumentListTile extends StatelessWidget {
       onDismissed: (_) => onDelete(),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -43,6 +60,7 @@ class DocumentListTile extends StatelessWidget {
         ),
         child: ListTile(
           onTap: onTap,
+          onLongPress: onDelete,
           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           leading: Container(
             height: 48,
@@ -55,15 +73,23 @@ class DocumentListTile extends StatelessWidget {
           ),
           title: Text(
             doc.name,
-            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black, fontSize: 15),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.onSurface,
+              fontSize: 15,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           subtitle: Text(
             DateFormat.yMMMd().format(doc.createdAt),
-            style: const TextStyle(fontSize: 12, color: Colors.black54, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          trailing: const Icon(Icons.chevron_right, color: Colors.black26),
+          trailing: Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.3)),
         ),
       ),
     );

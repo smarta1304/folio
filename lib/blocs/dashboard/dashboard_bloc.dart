@@ -11,6 +11,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     on<AddFolder>(_onAddFolder);
     on<DeleteDocument>(_onDeleteDocument);
     on<DeleteFolder>(_onDeleteFolder);
+    on<SearchDashboard>(_onSearchDashboard);
   }
 
   Future<void> _onLoadDashboard(
@@ -19,6 +20,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       ) async {
     emit(DashboardLoading());
     try {
+      await repository.cleanupExpiredFolders();
       final folders = await repository.getFolders();
       final recentDocs = await repository.getRecentDocuments();
 
@@ -36,10 +38,42 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       Emitter<DashboardState> emit,
       ) async {
     try {
-      await repository.createFolder(event.name);
+      DateTime? expiresAt;
+      if (event.expiryHours != null) {
+        expiresAt = DateTime.now().add(Duration(hours: event.expiryHours!));
+      }
+      await repository.createFolder(event.name, expiresAt: expiresAt);
       add(LoadDashboard());
     } catch (e) {
       emit(DashboardError(e.toString()));
+    }
+  }
+
+  Future<void> _onSearchDashboard(
+      SearchDashboard event,
+      Emitter<DashboardState> emit,
+      ) async {
+    if (state is DashboardLoaded) {
+      final currentState = state as DashboardLoaded;
+      if (event.query.isEmpty) {
+        emit(DashboardLoaded(
+          folders: currentState.folders,
+          recentDocuments: currentState.recentDocuments,
+        ));
+        return;
+      }
+
+      try {
+        final results = await repository.searchDocuments(event.query);
+        emit(DashboardLoaded(
+          folders: currentState.folders,
+          recentDocuments: currentState.recentDocuments,
+          searchResults: results,
+          searchQuery: event.query,
+        ));
+      } catch (e) {
+        emit(DashboardError(e.toString()));
+      }
     }
   }
 

@@ -22,9 +22,30 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 3,
+      onConfigure: (db) async => await db.execute('PRAGMA foreign_keys = ON'),
       onCreate: _createDB,
+      onUpgrade: _onUpgrade,
     );
+  }
+
+  Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS pages (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          documentId INTEGER NOT NULL,
+          imagePath TEXT NOT NULL,
+          pageOrder INTEGER NOT NULL,
+          metadata TEXT,
+          FOREIGN KEY (documentId) REFERENCES documents (id) ON DELETE CASCADE
+        )
+      ''');
+    }
+    if (oldVersion < 3) {
+      await db.execute('ALTER TABLE folders ADD COLUMN expiresAt TEXT');
+      await db.execute('ALTER TABLE pages ADD COLUMN extractedText TEXT');
+    }
   }
 
   Future _createDB(Database db, int version) async {
@@ -32,7 +53,8 @@ class DatabaseHelper {
       CREATE TABLE folders (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
-        createdAt TEXT NOT NULL
+        createdAt TEXT NOT NULL,
+        expiresAt TEXT
       )
     ''');
 
@@ -52,6 +74,7 @@ class DatabaseHelper {
         documentId INTEGER NOT NULL,
         imagePath TEXT NOT NULL,
         pageOrder INTEGER NOT NULL,
+        extractedText TEXT,
         metadata TEXT,
         FOREIGN KEY (documentId) REFERENCES documents (id) ON DELETE CASCADE
       )
@@ -101,6 +124,30 @@ class DatabaseHelper {
       limit: limit,
     );
     return result.map((json) => Document.fromMap(json)).toList();
+  }
+
+  Future<List<Document>> searchDocuments(String query) async {
+    final db = await instance.database;
+    // Search in document names or page extracted text
+    final result = await db.rawQuery('''
+      SELECT DISTINCT d.* FROM documents d
+      LEFT JOIN pages p ON d.id = p.documentId
+      WHERE d.name LIKE ? OR p.extractedText LIKE ?
+      ORDER BY d.createdAt DESC
+    ''', ['%$query%', '%$query%']);
+    
+    return result.map((json) => Document.fromMap(json)).toList();
+  }
+
+  Future<List<Folder>> getExpiredFolders() async {
+    final db = await instance.database;
+    final now = DateTime.now().toIso8601String();
+    final result = await db.query(
+      'folders',
+      where: 'expiresAt IS NOT NULL AND expiresAt < ?',
+      whereArgs: [now],
+    );
+    return result.map((json) => Folder.fromMap(json)).toList();
   }
 
   Future<int> deleteDocument(int id) async {

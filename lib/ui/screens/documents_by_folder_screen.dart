@@ -31,14 +31,14 @@ class _DocumentsByFolderScreenState extends State<DocumentsByFolderScreen> {
         elevation: 0,
       ),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color(0xFFF3E5F5),
+              Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
               Colors.white,
-              Color(0xFFE3F2FD),
+              Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.3),
             ],
           ),
         ),

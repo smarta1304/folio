@@ -4,17 +4,18 @@ abstract class DashboardEvent extends Equatable {
   const DashboardEvent();
 
   @override
-  List<Object> get props => [];
+  List<Object?> get props => [];
 }
 
 class LoadDashboard extends DashboardEvent {}
 
 class AddFolder extends DashboardEvent {
   final String name;
-  const AddFolder(this.name);
+  final int? expiryHours;
+  const AddFolder(this.name, {this.expiryHours});
 
   @override
-  List<Object> get props => [name];
+  List<Object?> get props => [name, expiryHours];
 }
 
 class DeleteDocument extends DashboardEvent {
@@ -31,4 +32,12 @@ class DeleteFolder extends DashboardEvent {
 
   @override
   List<Object> get props => [id];
+}
+
+class SearchDashboard extends DashboardEvent {
+  final String query;
+  const SearchDashboard(this.query);
+
+  @override
+  List<Object> get props => [query];
 }

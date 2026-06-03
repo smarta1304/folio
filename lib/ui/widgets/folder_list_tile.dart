@@ -34,13 +34,27 @@ class FolderListTile extends StatelessWidget {
           );
           return false;
         }
-        return true;
+        return await showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Delete Folder'),
+            content: Text('Are you sure you want to delete "${folder.name}" and all its documents?'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+        );
       },
       onDismissed: (_) => onDelete(),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8.0),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -52,25 +66,33 @@ class FolderListTile extends StatelessWidget {
         ),
         child: ListTile(
           onTap: onTap,
+          onLongPress: onDelete,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           leading: Container(
             height: 52,
             width: 52,
             decoration: BoxDecoration(
-              color: const Color(0xFFE3F2FD),
+              color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.4),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.folder_rounded, color: Color(0xFF1976D2), size: 32),
+            child: Icon(Icons.folder_rounded, color: Theme.of(context).colorScheme.primary, size: 32),
           ),
           title: Text(
             folder.name,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
           ),
           subtitle: Text(
             '${folder.createdAt.toString().split(' ')[0]} • Offline',
-            style: const TextStyle(color: Colors.black54, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          trailing: const Icon(Icons.chevron_right_rounded, color: Colors.black26),
+          trailing: Icon(Icons.chevron_right_rounded, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.3)),
         ),
       ),
     );

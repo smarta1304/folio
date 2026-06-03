@@ -84,7 +84,7 @@ class _StudioScreenState extends State<StudioScreen> {
                 ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
                 Uint8List pngBytes = byteData!.buffer.asUint8List();
 
-                final directory = await getApplicationDocumentsDirectory();
+                final directory = await getTemporaryDirectory();
                 final path = '${directory.path}/edited_${DateTime.now().millisecondsSinceEpoch}.png';
                 final File imgFile = File(path);
                 await imgFile.writeAsBytes(pngBytes);

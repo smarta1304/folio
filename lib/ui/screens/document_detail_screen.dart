@@ -6,6 +6,8 @@ import '../../models/document_model.dart';
 import '../../models/page_model.dart';
 import '../../repositories/document_repository.dart';
 import '../../services/pdf_service.dart';
+import '../../blocs/dashboard/dashboard_bloc.dart';
+import '../../blocs/dashboard/dashboard_event.dart';
 import 'studio_screen.dart';
 import '../../services/scanner_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -36,11 +38,19 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
   }
 
   Future<void> _loadPages() async {
-    final pages = await widget.repository.getPages(widget.document.id!);
-    if (mounted) {
-      setState(() {
-        _pages = pages;
-      });
+    try {
+      final pages = await widget.repository.getPages(widget.document.id!);
+      if (mounted) {
+        setState(() {
+          _pages = pages;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading pages: $e')),
+        );
+      }
     }
   }
 
@@ -105,6 +115,25 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
               await OpenFilex.open(pdfFile.path);
             },
           ),
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'delete') {
+                _deleteDocument(context);
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete_outline, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('Delete Document', style: TextStyle(color: Colors.red)),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ],
       ),
       body: _pages == null
@@ -119,6 +148,35 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
         child: const Icon(Icons.add_a_photo_outlined),
       ),
     );
+  }
+
+  Future<void> _deleteDocument(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Document'),
+        content: Text('Are you sure you want to delete "${widget.document.name}"? This cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      await widget.repository.deleteDocument(widget.document.id!);
+      if (mounted) {
+        context.read<DashboardBloc>().add(LoadDashboard());
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Document deleted')),
+        );
+      }
+    }
   }
 
   Future<void> _addPages(BuildContext context) async {
@@ -202,21 +260,43 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
       itemCount: _pages!.length,
       itemBuilder: (context, index) {
         final page = _pages![index];
-        return Hero(
-          tag: 'page_${page.id}',
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                )
-              ],
-            ),
-            child: Stack(
-              children: [
+        return GestureDetector(
+          onLongPress: () async {
+            final confirm = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('Delete Page'),
+                content: const Text('Are you sure you want to delete this page?'),
+                actions: [
+                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    style: TextButton.styleFrom(foregroundColor: Colors.red),
+                    child: const Text('Delete'),
+                  ),
+                ],
+              ),
+            );
+            if (confirm == true) {
+              await widget.repository.deletePage(page);
+              _loadPages();
+            }
+          },
+          child: Hero(
+            tag: 'page_${page.id}',
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  )
+                ],
+              ),
+              child: Stack(
+                children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: Image.file(
@@ -224,46 +304,44 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
                     fit: BoxFit.cover,
                     width: double.infinity,
                     height: double.infinity,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: Colors.grey[200],
+                        child: const Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.broken_image_outlined, color: Colors.grey, size: 32),
+                            SizedBox(height: 4),
+                            Text('Missing Image', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                 ),
                 Positioned(
                   top: 8,
                   right: 8,
-                  child: Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () async {
-                          final File? editedImage = await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => StudioScreen(image: File(page.imagePath)),
-                            ),
-                          );
-                          if (editedImage != null) {
-                            final updatedPage = page.copyWith(imagePath: editedImage.path);
-                            await widget.repository.updatePage(updatedPage);
-                            _loadPages();
-                          }
-                        },
-                        child: const CircleAvatar(
-                          radius: 16,
-                          backgroundColor: Colors.white,
-                          child: Icon(Icons.edit_outlined, size: 18, color: Colors.black),
+                  child: GestureDetector(
+                    onTap: () async {
+                      final File? editedImage = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => StudioScreen(image: File(page.imagePath)),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: () async {
-                          await widget.repository.deletePage(page.id!);
-                          _loadPages();
-                        },
-                        child: CircleAvatar(
-                          radius: 16,
-                          backgroundColor: Colors.red.shade400,
-                          child: const Icon(Icons.delete_outline, size: 18, color: Colors.white),
-                        ),
-                      ),
-                    ],
+                      );
+                      if (editedImage != null && context.mounted) {
+                        final scannerService = context.read<ScannerService>();
+                        final permanentFile = await scannerService.saveImageToPermanentStorage(editedImage);
+                        await widget.repository.replacePageImage(page, permanentFile.path);
+                        _loadPages();
+                      }
+                    },
+                    child: const CircleAvatar(
+                      radius: 16,
+                      backgroundColor: Colors.white,
+                      child: Icon(Icons.edit_outlined, size: 18, color: Colors.black),
+                    ),
                   ),
                 ),
                 Positioned(
@@ -284,10 +362,11 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
               ],
             ),
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
 
   Widget _buildReorderableList() {
     return ReorderableListView.builder(
@@ -325,6 +404,41 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
               ],
             ),
             child: ListTile(
+              onTap: () async {
+                final File? editedImage = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => StudioScreen(image: File(page.imagePath)),
+                  ),
+                );
+                if (editedImage != null && context.mounted) {
+                  final scannerService = context.read<ScannerService>();
+                  final permanentFile = await scannerService.saveImageToPermanentStorage(editedImage);
+                  await widget.repository.replacePageImage(page, permanentFile.path);
+                  _loadPages();
+                }
+              },
+              onLongPress: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Delete Page'),
+                    content: const Text('Are you sure you want to delete this page?'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        style: TextButton.styleFrom(foregroundColor: Colors.red),
+                        child: const Text('Delete'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirm == true) {
+                  await widget.repository.deletePage(page);
+                  _loadPages();
+                }
+              },
               leading: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: Image.file(File(page.imagePath), width: 50, height: 50, fit: BoxFit.cover),
